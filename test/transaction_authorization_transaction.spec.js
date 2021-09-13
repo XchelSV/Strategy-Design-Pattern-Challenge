@@ -43,4 +43,59 @@ describe('Transaction Authorization', () => {
         expect(result.account['available-limit']).toEqual(200);
         expect(result.violations).toEqual([]);
     });
+    it('Processing a transaction which violates card-not-active logic', () => {
+        const account = new Account();
+        const transactionFactory = new TransactionFactory();
+        const line_1 = {'account': {'active-card': false, 'available-limit': 100}};
+        let transaction = transactionFactory.getTransactionByLine(line_1);
+        let result = transaction.applyTransaction(account);
+        expect(result.account['active-card']).toEqual(false);
+        expect(result.account['available-limit']).toEqual(100);
+        expect(result.violations).toEqual([]);
+
+        const line_2 = {'transaction': {'merchant': 'Burger King', 'amount': 20, 'time': '2019-02- 13T11:00:00.000Z'}};
+        transaction = transactionFactory.getTransactionByLine(line_2);
+        result = transaction.applyTransaction(account);
+        expect(result.account['active-card']).toEqual(false);
+        expect(result.account['available-limit']).toEqual(100);
+        expect(result.violations).toEqual(['card-not-active']);
+
+        const line_3 = {'transaction': {'merchant': 'Habbibs', 'amount': 15, 'time': '2019-02- 13T11:15:00.000Z'}};
+        transaction = transactionFactory.getTransactionByLine(line_3);
+        result = transaction.applyTransaction(account);
+        expect(result.account['active-card']).toEqual(false);
+        expect(result.account['available-limit']).toEqual(100);
+        expect(result.violations).toEqual(['card-not-active']);
+    });
+    it('Processing a transaction which violates insufficient-limit logic', () => {
+        const account = new Account();
+        const transactionFactory = new TransactionFactory();
+        const line_1 = {'account': {'active-card': true, 'available-limit': 1000}};
+        let transaction = transactionFactory.getTransactionByLine(line_1);
+        let result = transaction.applyTransaction(account);
+        expect(result.account['active-card']).toEqual(true);
+        expect(result.account['available-limit']).toEqual(1000);
+        expect(result.violations).toEqual([]);
+
+        const line_2 = {'transaction': {'merchant': 'Vivara', 'amount': 1250, 'time': '2019-02-13T11:00:00.000Z'}};
+        transaction = transactionFactory.getTransactionByLine(line_2);
+        result = transaction.applyTransaction(account);
+        expect(result.account['active-card']).toEqual(true);
+        expect(result.account['available-limit']).toEqual(1000);
+        expect(result.violations).toEqual(['insufficient-limit']);
+
+        const line_3 = {'transaction': {'merchant': 'Samsung', 'amount': 2500, 'time': '2019-02-13T11:00:01.000Z'}};
+        transaction = transactionFactory.getTransactionByLine(line_3);
+        result = transaction.applyTransaction(account);
+        expect(result.account['active-card']).toEqual(true);
+        expect(result.account['available-limit']).toEqual(1000);
+        expect(result.violations).toEqual(['insufficient-limit']);
+
+        const line_4 = {'transaction': {'merchant': 'Nike', 'amount': 800, 'time': '2019-02-13T11:01:01.000Z'}};
+        transaction = transactionFactory.getTransactionByLine(line_4);
+        result = transaction.applyTransaction(account);
+        expect(result.account['active-card']).toEqual(true);
+        expect(result.account['available-limit']).toEqual(200);
+        expect(result.violations).toEqual([]);
+    });
 });
