@@ -181,4 +181,63 @@ describe('Transaction Authorization', () => {
         expect(result.account['available-limit']).toEqual(55);
         expect(result.violations).toEqual([]);
     });
+    it('Processing transactions that violate multiple logics', () => {
+        const account = new Account();
+        const transactionFactory = new TransactionFactory();
+        const line_1 = {'account': {'active-card': true, 'available-limit': 100}}
+        let transaction = transactionFactory.getTransactionByLine(line_1);
+        let result = transaction.applyTransaction(account);
+        expect(result.account['active-card']).toEqual(true);
+        expect(result.account['available-limit']).toEqual(100);
+        expect(result.violations).toEqual([]);
+
+        const line_2 = {'transaction': {'merchant': 'McDonalds', 'amount': 10, 'time': '2019-02-13T11:00:01.000Z'}}
+        transaction = transactionFactory.getTransactionByLine(line_2);
+        result = transaction.applyTransaction(account);
+        expect(result.account['active-card']).toEqual(true);
+        expect(result.account['available-limit']).toEqual(90);
+        expect(result.violations).toEqual([]);
+
+        const line_3 = {'transaction': {'merchant': 'Burger King', 'amount': 20, 'time': '2019-02-13T11:00:02.000Z'}}
+        transaction = transactionFactory.getTransactionByLine(line_3);
+        result = transaction.applyTransaction(account);
+        expect(result.account['active-card']).toEqual(true);
+        expect(result.account['available-limit']).toEqual(70);
+        expect(result.violations).toEqual([]);
+
+        const line_4 = {'transaction': {'merchant': 'Burger King', 'amount': 5, 'time': '2019-02-13T11:00:07.000Z'}}
+        transaction = transactionFactory.getTransactionByLine(line_4);
+        result = transaction.applyTransaction(account);
+        expect(result.account['active-card']).toEqual(true);
+        expect(result.account['available-limit']).toEqual(65);
+        expect(result.violations).toEqual([]);
+
+        const line_5 = {'transaction': {'merchant': 'Burger King', 'amount': 5, 'time': '2019-02-13T11:00:08.000Z'}}
+        transaction = transactionFactory.getTransactionByLine(line_5);
+        result = transaction.applyTransaction(account);
+        expect(result.account['active-card']).toEqual(true);
+        expect(result.account['available-limit']).toEqual(65);
+        expect(result.violations).toEqual(['high-frequency-small-interval','doubled-transaction']);
+        
+        const line_6 = {'transaction': {'merchant': 'Burger King', 'amount': 150, 'time': '2019-02-13T11:00:18.000Z'}}
+        transaction = transactionFactory.getTransactionByLine(line_6);
+        result = transaction.applyTransaction(account);
+        expect(result.account['active-card']).toEqual(true);
+        expect(result.account['available-limit']).toEqual(65);
+        expect(result.violations).toEqual(['insufficient-limit','high-frequency-small-interval']);
+
+        const line_7 = {'transaction': {'merchant': 'Burger King', 'amount': 190, 'time': '2019-02-13T11:00:22.000Z'}}
+        transaction = transactionFactory.getTransactionByLine(line_7);
+        result = transaction.applyTransaction(account);
+        expect(result.account['active-card']).toEqual(true);
+        expect(result.account['available-limit']).toEqual(65);
+        expect(result.violations).toEqual(['insufficient-limit','high-frequency-small-interval']);
+
+        const line_8 = {'transaction': {'merchant': 'Burger King', 'amount': 15, 'time': '2019-02-13T12:00:27.000Z'}}
+        transaction = transactionFactory.getTransactionByLine(line_8);
+        result = transaction.applyTransaction(account);
+        expect(result.account['active-card']).toEqual(true);
+        expect(result.account['available-limit']).toEqual(50);
+        expect(result.violations).toEqual([]);
+    });
 });
