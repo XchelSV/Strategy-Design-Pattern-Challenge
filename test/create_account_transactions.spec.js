@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
-import Account from '../Account';
-import TransactionFactory from '../TransactionFactory';
+import Account from '../src/account/Account';
+import TransactionFactory from '../src/transaction/TransactionFactory';
 
 describe('Create Account', () => {
     it('Creating an account successfully', () => {
