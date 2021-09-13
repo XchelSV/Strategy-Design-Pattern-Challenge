@@ -8,6 +8,8 @@ class TransactionAuthorization extends Transaction {
         this.validateAccountNotInitialized(account);
         this.validateCardNotActive(account);
         this.validateInsufficentLimit(account);
+        this.validateHighFrecuencySmallInterval(account);
+        this.validateDoubledTransaction(account);
         if (this.violations.length === 0){
             account.addTransactions(this.action_object);
         }
@@ -26,6 +28,22 @@ class TransactionAuthorization extends Transaction {
     validateInsufficentLimit(account){
         if (account.getAvailableLimit() < this.action_object.amount){
             this.violations.push('insufficient-limit');
+        }
+    }
+    validateHighFrecuencySmallInterval(account){
+        const current_date = new Date(this.action_object.time);
+        const _2_minutes_before_date = new Date(current_date.getTime() - 2*60000);
+        const last_2_minutes_transactions = account.getTransactions(_2_minutes_before_date, current_date);
+        if (last_2_minutes_transactions.length >= 3){
+            this.violations.push('high-frequency-small-interval');
+        }
+    }
+    validateDoubledTransaction(account){
+        const current_date = new Date(this.action_object.time);
+        const _2_minutes_before_date = new Date(current_date.getTime() - 2*60000);
+        const last_2_minutes_transactions = account.getTransactions(_2_minutes_before_date, current_date, this.action_object.merchant, this.action_object.amount);
+        if (last_2_minutes_transactions.length >= 1){
+            this.violations.push('doubled-transaction');
         }
     }
 }
